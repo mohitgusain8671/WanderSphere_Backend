@@ -2,6 +2,10 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from '#routes/auth.routes.js';
+import postsRoutes from '#routes/posts.routes.js';
+import friendsRoutes from '#routes/friends.routes.js';
+import storiesRoutes from '#routes/stories.routes.js';
+import notificationsRoutes from '#routes/notifications.routes.js';
 
 const app = express();
 
@@ -17,6 +21,10 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/stories', storiesRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
