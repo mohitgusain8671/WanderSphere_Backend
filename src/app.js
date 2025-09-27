@@ -8,6 +8,7 @@ import storiesRoutes from '#routes/stories.routes.js';
 import notificationsRoutes from '#routes/notifications.routes.js';
 import userRoutes from '#routes/user.routes.js';
 import wanderlustRoutes from '#routes/wanderlust.routes.js';
+import itineraryRoutes from '#routes/itinerary.routes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/stories', storiesRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/wanderlust', wanderlustRoutes);
+app.use('/api/itinerary', itineraryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

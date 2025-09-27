@@ -131,6 +131,315 @@ Keep the tip concise but meaningful (10-20 words).
         ];
         return tips[Math.floor(Math.random() * tips.length)];
     }
+
+    /**
+     * Generate a comprehensive travel itinerary based on user preferences
+     */
+    async generateItinerary(preferences) {
+        try {
+            const prompt = this.buildItineraryPrompt(preferences);
+            
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            const generatedText = response.text();
+            
+            // Parse the AI response into structured format
+            return this.parseItineraryResponse(generatedText, preferences);
+        } catch (error) {
+            console.error('Error generating itinerary:', error);
+            throw new Error('Failed to generate itinerary. Please try again.');
+        }
+    }
+
+    /**
+     * Build a comprehensive prompt for itinerary generation
+     */
+    buildItineraryPrompt(preferences) {
+        const {
+            destination,
+            startDate,
+            endDate,
+            duration,
+            budget,
+            travelStyle,
+            interests,
+            accommodation,
+            transportation,
+            groupSize,
+            specialRequirements
+        } = preferences;
+
+        return `You are an expert travel planner. Create a comprehensive ${duration}-day travel itinerary for ${destination}.
+
+TRIP DETAILS:
+- Destination: ${destination}
+- Start Date: ${startDate}
+- End Date: ${endDate}
+- Duration: ${duration} days
+- Budget: ${budget}
+- Travel Style: ${travelStyle}
+- Interests: ${interests.join(', ')}
+- Accommodation: ${accommodation}
+- Transportation: ${transportation}
+- Group Size: ${groupSize} people
+- Special Requirements: ${specialRequirements || 'None'}
+
+Please provide the response in the following JSON format:
+
+{
+  "title": "Attractive trip title",
+  "overview": "Compelling 2-3 sentence overview of the trip",
+  "highlights": [
+    "Top highlight 1",
+    "Top highlight 2",
+    "Top highlight 3",
+    "Top highlight 4",
+    "Top highlight 5"
+  ],
+  "dailyPlan": [
+    {
+      "day": 1,
+      "date": "YYYY-MM-DD",
+      "theme": "Day theme (e.g., 'Arrival & Old Town Exploration')",
+      "activities": [
+        {
+          "time": "09:00 AM",
+          "activity": "Activity name",
+          "location": "Specific location",
+          "description": "Detailed description with what to expect",
+          "estimatedCost": "$XX per person",
+          "tips": "Helpful tip for this activity"
+        }
+      ]
+    }
+  ],
+  "recommendations": {
+    "restaurants": [
+      {
+        "name": "Restaurant Name",
+        "cuisine": "Cuisine type",
+        "priceRange": "Budget/Mid-range/Upscale",
+        "location": "Area/Address",
+        "speciality": "Must-try dish"
+      }
+    ],
+    "hotels": [
+      {
+        "name": "Hotel Name",
+        "type": "Hotel/Hostel/B&B etc.",
+        "priceRange": "$XX-XX per night",
+        "location": "Area name",
+        "amenities": ["Amenity 1", "Amenity 2"]
+      }
+    ],
+    "tips": [
+      {
+        "category": "Transportation",
+        "tip": "Specific tip"
+      },
+      {
+        "category": "Culture",
+        "tip": "Cultural insight"
+      },
+      {
+        "category": "Money",
+        "tip": "Money-saving tip"
+      },
+      {
+        "category": "Safety",
+        "tip": "Safety advice"
+      },
+      {
+        "category": "Local Experience",
+        "tip": "Local experience tip"
+      }
+    ]
+  },
+  "estimatedBudget": {
+    "total": "$XXXX per person",
+    "breakdown": {
+      "accommodation": "$XXX",
+      "food": "$XXX",
+      "activities": "$XXX",
+      "transportation": "$XXX",
+      "miscellaneous": "$XXX"
+    }
+  }
+}
+
+IMPORTANT GUIDELINES:
+1. Create ${duration} detailed daily plans with 4-6 activities each day
+2. Include specific times, locations, and realistic costs
+3. Balance must-see attractions with local experiences
+4. Consider travel time between activities
+5. Match the ${budget} budget level (budget: under $100/day, mid-range: $100-300/day, luxury: $300+/day)
+6. Incorporate the ${travelStyle} style throughout
+7. Include interests: ${interests.join(', ')}
+8. Provide practical tips and insider knowledge
+9. Suggest 5-7 restaurants and 3-5 accommodation options
+10. Give realistic cost estimates based on current prices
+11. Consider group size of ${groupSize} people in recommendations
+12. Make the itinerary engaging and well-structured
+
+Please respond with valid JSON only, no additional text.`;
+    }
+
+    /**
+     * Parse the AI response into structured format
+     */
+    parseItineraryResponse(responseText, preferences) {
+        try {
+            // Clean the response text - remove any markdown formatting or extra text
+            let cleanedText = responseText.trim();
+            
+            // Find JSON content between curly braces
+            const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                cleanedText = jsonMatch[0];
+            }
+            
+            // Parse JSON
+            const parsedData = JSON.parse(cleanedText);
+            
+            // Validate and structure the response
+            return {
+                title: parsedData.title || `${preferences.duration}-Day ${preferences.destination} Adventure`,
+                destination: preferences.destination,
+                overview: parsedData.overview || `An amazing ${preferences.duration}-day journey through ${preferences.destination}.`,
+                highlights: parsedData.highlights || [],
+                dailyPlan: this.validateDailyPlan(parsedData.dailyPlan || [], preferences),
+                recommendations: {
+                    restaurants: parsedData.recommendations?.restaurants || [],
+                    hotels: parsedData.recommendations?.hotels || [],
+                    tips: parsedData.recommendations?.tips || []
+                },
+                estimatedBudget: {
+                    total: parsedData.estimatedBudget?.total || 'Contact for pricing',
+                    breakdown: {
+                        accommodation: parsedData.estimatedBudget?.breakdown?.accommodation || 'TBD',
+                        food: parsedData.estimatedBudget?.breakdown?.food || 'TBD',
+                        activities: parsedData.estimatedBudget?.breakdown?.activities || 'TBD',
+                        transportation: parsedData.estimatedBudget?.breakdown?.transportation || 'TBD',
+                        miscellaneous: parsedData.estimatedBudget?.breakdown?.miscellaneous || 'TBD'
+                    }
+                }
+            };
+        } catch (parseError) {
+            console.error('Error parsing AI response:', parseError);
+            
+            // Return a fallback structured response
+            return this.generateFallbackItinerary(preferences, responseText);
+        }
+    }
+
+    /**
+     * Validate and ensure daily plan structure
+     */
+    validateDailyPlan(dailyPlan, preferences) {
+        const validatedPlan = [];
+        const startDate = new Date(preferences.startDate);
+        
+        for (let i = 0; i < preferences.duration; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+            
+            const dayData = dailyPlan[i] || {};
+            
+            validatedPlan.push({
+                day: i + 1,
+                date: currentDate.toISOString().split('T')[0],
+                theme: dayData.theme || `Day ${i + 1} - ${preferences.destination} Exploration`,
+                activities: Array.isArray(dayData.activities) ? dayData.activities.map(activity => ({
+                    time: activity.time || '10:00 AM',
+                    activity: activity.activity || 'Explore local attractions',
+                    location: activity.location || preferences.destination,
+                    description: activity.description || 'Discover the beauty and culture of the area',
+                    estimatedCost: activity.estimatedCost || 'Free',
+                    tips: activity.tips || 'Enjoy the experience!'
+                })) : []
+            });
+        }
+        
+        return validatedPlan;
+    }
+
+    /**
+     * Generate a fallback itinerary if AI parsing fails
+     */
+    generateFallbackItinerary(preferences, rawResponse) {
+        const startDate = new Date(preferences.startDate);
+        const dailyPlan = [];
+        
+        for (let i = 0; i < preferences.duration; i++) {
+            const currentDate = new Date(startDate);
+            currentDate.setDate(startDate.getDate() + i);
+            
+            dailyPlan.push({
+                day: i + 1,
+                date: currentDate.toISOString().split('T')[0],
+                theme: `Day ${i + 1} - ${preferences.destination} Adventure`,
+                activities: [
+                    {
+                        time: '09:00 AM',
+                        activity: 'Morning Exploration',
+                        location: preferences.destination,
+                        description: 'Start your day exploring the local area and key attractions.',
+                        estimatedCost: 'Varies',
+                        tips: 'Start early to avoid crowds!'
+                    },
+                    {
+                        time: '02:00 PM',
+                        activity: 'Afternoon Discovery',
+                        location: preferences.destination,
+                        description: 'Continue discovering local culture and attractions.',
+                        estimatedCost: 'Varies',
+                        tips: 'Take breaks and stay hydrated!'
+                    },
+                    {
+                        time: '07:00 PM',
+                        activity: 'Evening Experience',
+                        location: preferences.destination,
+                        description: 'Enjoy local dining and evening activities.',
+                        estimatedCost: 'Varies',
+                        tips: 'Try local specialties!'
+                    }
+                ]
+            });
+        }
+        
+        return {
+            title: `${preferences.duration}-Day ${preferences.destination} Journey`,
+            destination: preferences.destination,
+            overview: `Experience the best of ${preferences.destination} with this carefully planned ${preferences.duration}-day itinerary.`,
+            highlights: [
+                `Explore ${preferences.destination}`,
+                'Local cultural experiences',
+                'Scenic attractions',
+                'Culinary adventures',
+                'Memorable moments'
+            ],
+            dailyPlan,
+            recommendations: {
+                restaurants: [],
+                hotels: [],
+                tips: [
+                    { category: 'General', tip: 'Plan ahead and book accommodations early.' },
+                    { category: 'Budget', tip: 'Look for local deals and free activities.' }
+                ]
+            },
+            estimatedBudget: {
+                total: 'Contact for detailed pricing',
+                breakdown: {
+                    accommodation: 'TBD',
+                    food: 'TBD',
+                    activities: 'TBD',
+                    transportation: 'TBD',
+                    miscellaneous: 'TBD'
+                }
+            },
+            rawAIResponse: rawResponse // Include for debugging
+        };
+    }
 }
 
 export default new AIService();
