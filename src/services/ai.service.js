@@ -365,30 +365,46 @@ Please respond with valid JSON only, no additional text.`;
      */
     parseRecommendations(data, type) {
         if (!data) return [];
-        
-        // If it's already an array, return it
-        if (Array.isArray(data)) return data;
-        
-        // If it's a string that looks like JSON, try to parse it
-        if (typeof data === 'string') {
+
+        // Utility: recursively attempt parsing
+        const tryParse = (value) => {
+            if (typeof value !== "string") return value;
+
+            let cleaned = value.trim();
+
+            // 1️⃣ Replace single quotes with double quotes safely
+            //    but skip if already valid JSON
+            if (!cleaned.startsWith("[") && !cleaned.startsWith("{")) {
             try {
-                const parsed = JSON.parse(data);
-                if (Array.isArray(parsed)) {
-                    return parsed;
-                }
-            } catch (parseError) {
-                console.error(`Error parsing ${type} recommendations:`, parseError);
-                return [];
+                return JSON.parse(cleaned);
+            } catch {
+                return cleaned;
             }
-        }
-        
-        // If it's an object, wrap it in array
-        if (typeof data === 'object') {
-            return [data];
-        }
-        
+            }
+
+            // Try to make it JSON-safe
+            cleaned = cleaned
+            .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":') // wrap keys in quotes
+            .replace(/'/g, '"'); // replace single quotes with double
+
+            try {
+            const parsed = JSON.parse(cleaned);
+            return tryParse(parsed); // handle nested or re-stringified data
+            } catch (err) {
+            console.warn(`Failed to parse ${type}:`, err.message);
+            return [];
+            }
+        };
+
+        const parsedData = tryParse(data);
+
+        if (Array.isArray(parsedData)) return parsedData;
+        if (typeof parsedData === "object") return [parsedData];
+
+        console.warn(`Unexpected ${type} format:`, parsedData);
         return [];
-    }
+        }
+
 
     /**
      * Validate and ensure daily plan structure
