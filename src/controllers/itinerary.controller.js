@@ -60,6 +60,18 @@ class ItineraryController {
             // Generate itinerary using AI service
             const aiGeneratedContent = await AIService.generateItinerary(preferences);
             console.log('Received Preference from Gemini');
+            
+            // Debug: Log the AI generated content structure
+            console.log('AI Generated Content structure:');
+            console.log('- Title:', aiGeneratedContent.title);
+            console.log('- Highlights type:', typeof aiGeneratedContent.highlights, Array.isArray(aiGeneratedContent.highlights));
+            console.log('- Recommendations type:', typeof aiGeneratedContent.recommendations);
+            if (aiGeneratedContent.recommendations) {
+                console.log('- Hotels type:', typeof aiGeneratedContent.recommendations.hotels, Array.isArray(aiGeneratedContent.recommendations.hotels));
+                console.log('- Restaurants type:', typeof aiGeneratedContent.recommendations.restaurants, Array.isArray(aiGeneratedContent.recommendations.restaurants));
+                console.log('- Tips type:', typeof aiGeneratedContent.recommendations.tips, Array.isArray(aiGeneratedContent.recommendations.tips));
+            }
+            
             // Create and save itinerary to database
             const itinerary = new Itinerary({
                 userId,

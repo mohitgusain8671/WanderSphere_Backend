@@ -292,6 +292,9 @@ Please respond with valid JSON only, no additional text.`;
             // Clean the response text - remove any markdown formatting or extra text
             let cleanedText = responseText.trim();
             
+            // Remove markdown code blocks if present
+            cleanedText = cleanedText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+            
             // Find JSON content between curly braces
             const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -301,17 +304,17 @@ Please respond with valid JSON only, no additional text.`;
             // Parse JSON
             const parsedData = JSON.parse(cleanedText);
             
-            // Validate and structure the response
+            // Validate and structure the response with enhanced parsing
             return {
                 title: parsedData.title || `${preferences.duration}-Day ${preferences.destination} Adventure`,
                 destination: preferences.destination,
                 overview: parsedData.overview || `An amazing ${preferences.duration}-day journey through ${preferences.destination}.`,
-                highlights: parsedData.highlights || [],
+                highlights: this.ensureArray(parsedData.highlights),
                 dailyPlan: this.validateDailyPlan(parsedData.dailyPlan || [], preferences),
                 recommendations: {
-                    restaurants: parsedData.recommendations?.restaurants || [],
-                    hotels: parsedData.recommendations?.hotels || [],
-                    tips: parsedData.recommendations?.tips || []
+                    restaurants: this.parseRecommendations(parsedData.recommendations?.restaurants, 'restaurants'),
+                    hotels: this.parseRecommendations(parsedData.recommendations?.hotels, 'hotels'),
+                    tips: this.parseRecommendations(parsedData.recommendations?.tips, 'tips')
                 },
                 estimatedBudget: {
                     total: parsedData.estimatedBudget?.total || 'Contact for pricing',
@@ -326,10 +329,65 @@ Please respond with valid JSON only, no additional text.`;
             };
         } catch (parseError) {
             console.error('Error parsing AI response:', parseError);
+            console.error('Raw response:', responseText);
             
             // Return a fallback structured response
             return this.generateFallbackItinerary(preferences, responseText);
         }
+    }
+
+    /**
+     * Ensure data is an array and handle string JSON arrays
+     */
+    ensureArray(data) {
+        if (!data) return [];
+        
+        // If it's already an array, return it
+        if (Array.isArray(data)) return data;
+        
+        // If it's a string that looks like JSON array, try to parse it
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                return Array.isArray(parsed) ? parsed : [data];
+            } catch {
+                // If parsing fails, return as single item array
+                return [data];
+            }
+        }
+        
+        // If it's an object or other type, wrap in array
+        return [data];
+    }
+
+    /**
+     * Parse recommendations with proper error handling
+     */
+    parseRecommendations(data, type) {
+        if (!data) return [];
+        
+        // If it's already an array, return it
+        if (Array.isArray(data)) return data;
+        
+        // If it's a string that looks like JSON, try to parse it
+        if (typeof data === 'string') {
+            try {
+                const parsed = JSON.parse(data);
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
+            } catch (parseError) {
+                console.error(`Error parsing ${type} recommendations:`, parseError);
+                return [];
+            }
+        }
+        
+        // If it's an object, wrap it in array
+        if (typeof data === 'object') {
+            return [data];
+        }
+        
+        return [];
     }
 
     /**
@@ -361,84 +419,6 @@ Please respond with valid JSON only, no additional text.`;
         }
         
         return validatedPlan;
-    }
-
-    /**
-     * Generate a fallback itinerary if AI parsing fails
-     */
-    generateFallbackItinerary(preferences, rawResponse) {
-        const startDate = new Date(preferences.startDate);
-        const dailyPlan = [];
-        
-        for (let i = 0; i < preferences.duration; i++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + i);
-            
-            dailyPlan.push({
-                day: i + 1,
-                date: currentDate.toISOString().split('T')[0],
-                theme: `Day ${i + 1} - ${preferences.destination} Adventure`,
-                activities: [
-                    {
-                        time: '09:00 AM',
-                        activity: 'Morning Exploration',
-                        location: preferences.destination,
-                        description: 'Start your day exploring the local area and key attractions.',
-                        estimatedCost: 'Varies',
-                        tips: 'Start early to avoid crowds!'
-                    },
-                    {
-                        time: '02:00 PM',
-                        activity: 'Afternoon Discovery',
-                        location: preferences.destination,
-                        description: 'Continue discovering local culture and attractions.',
-                        estimatedCost: 'Varies',
-                        tips: 'Take breaks and stay hydrated!'
-                    },
-                    {
-                        time: '07:00 PM',
-                        activity: 'Evening Experience',
-                        location: preferences.destination,
-                        description: 'Enjoy local dining and evening activities.',
-                        estimatedCost: 'Varies',
-                        tips: 'Try local specialties!'
-                    }
-                ]
-            });
-        }
-        
-        return {
-            title: `${preferences.duration}-Day ${preferences.destination} Journey`,
-            destination: preferences.destination,
-            overview: `Experience the best of ${preferences.destination} with this carefully planned ${preferences.duration}-day itinerary.`,
-            highlights: [
-                `Explore ${preferences.destination}`,
-                'Local cultural experiences',
-                'Scenic attractions',
-                'Culinary adventures',
-                'Memorable moments'
-            ],
-            dailyPlan,
-            recommendations: {
-                restaurants: [],
-                hotels: [],
-                tips: [
-                    { category: 'General', tip: 'Plan ahead and book accommodations early.' },
-                    { category: 'Budget', tip: 'Look for local deals and free activities.' }
-                ]
-            },
-            estimatedBudget: {
-                total: 'Contact for detailed pricing',
-                breakdown: {
-                    accommodation: 'TBD',
-                    food: 'TBD',
-                    activities: 'TBD',
-                    transportation: 'TBD',
-                    miscellaneous: 'TBD'
-                }
-            },
-            rawAIResponse: rawResponse // Include for debugging
-        };
     }
 }
 
