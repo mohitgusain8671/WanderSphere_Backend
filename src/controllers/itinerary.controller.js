@@ -7,6 +7,7 @@ class ItineraryController {
      */
     async generateItinerary(req, res) {
         try {
+            console.log('Generating itinerary...');
             const userId = req.user.id;
             const {
                 destination,
@@ -55,10 +56,10 @@ class ItineraryController {
                 groupSize: groupSize || 1,
                 specialRequirements: specialRequirements || ''
             };
-
+            console.log('Sending Preference to Gemini');
             // Generate itinerary using AI service
             const aiGeneratedContent = await AIService.generateItinerary(preferences);
-
+            console.log('Received Preference from Gemini');
             // Create and save itinerary to database
             const itinerary = new Itinerary({
                 userId,
