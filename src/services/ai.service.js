@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 class AIService {
     constructor() {
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     }
 
     async generateWanderlustDestinations() {
