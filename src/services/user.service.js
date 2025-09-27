@@ -165,6 +165,36 @@ class UserService {
 
         return user;
     }
+
+    // Search users by name or email
+    async searchUsers(query, limit = 10, page = 1) {
+        const skip = (page - 1) * limit;
+        
+        const searchRegex = new RegExp(query, 'i');
+        
+        const users = await User.find({
+            $or: [
+                { firstName: searchRegex },
+                { lastName: searchRegex },
+                { email: searchRegex },
+                { 
+                    $expr: {
+                        $regexMatch: {
+                            input: { $concat: ['$firstName', ' ', '$lastName'] },
+                            regex: searchRegex
+                        }
+                    }
+                }
+            ],
+            isVerified: true
+        })
+        .select('firstName lastName email profilePicture bio travelStatus statusColor badges createdAt')
+        .limit(limit)
+        .skip(skip)
+        .sort({ createdAt: -1 });
+
+        return users;
+    }
 }
 
 export default new UserService();

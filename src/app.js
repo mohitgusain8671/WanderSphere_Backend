@@ -6,6 +6,7 @@ import postsRoutes from '#routes/posts.routes.js';
 import friendsRoutes from '#routes/friends.routes.js';
 import storiesRoutes from '#routes/stories.routes.js';
 import notificationsRoutes from '#routes/notifications.routes.js';
+import userRoutes from '#routes/user.routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/stories', storiesRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
