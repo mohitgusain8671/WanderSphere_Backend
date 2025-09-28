@@ -21,7 +21,6 @@ class ItineraryController {
                 groupSize,
                 specialRequirements
             } = req.body;
-
             // Validate required fields
             if (!destination || !startDate || !endDate || !budget || !travelStyle || !interests || interests.length === 0) {
                 return res.status(400).json({
@@ -56,22 +55,44 @@ class ItineraryController {
                 groupSize: groupSize || 1,
                 specialRequirements: specialRequirements || ''
             };
-            console.log('Sending Preference to Gemini');
             // Generate itinerary using AI service
             const aiGeneratedContent = await AIService.generateItinerary(preferences);
-            console.log('Received Preference from Gemini');
-            
-            // Debug: Log the AI generated content structure
-            console.log('AI Generated Content structure:');
-            console.log('- Title:', aiGeneratedContent.title);
-            console.log('- Highlights type:', typeof aiGeneratedContent.highlights, Array.isArray(aiGeneratedContent.highlights));
-            console.log('- Recommendations type:', typeof aiGeneratedContent.recommendations);
-            if (aiGeneratedContent.recommendations) {
-                console.log('- Hotels type:', typeof aiGeneratedContent.recommendations.hotels, Array.isArray(aiGeneratedContent.recommendations.hotels));
-                console.log('- Restaurants type:', typeof aiGeneratedContent.recommendations.restaurants, Array.isArray(aiGeneratedContent.recommendations.restaurants));
-                console.log('- Tips type:', typeof aiGeneratedContent.recommendations.tips, Array.isArray(aiGeneratedContent.recommendations.tips));
-            }
-            
+            // Universal safe parser that handles array/object/string safely
+            const normalizeToArray = (val) => {
+                if (Array.isArray(val)) {
+                    return val;
+                }
+                
+                if (typeof val === 'string') {
+                    let cleanedString = val.trim();
+                    
+                    // Use a more advanced parsing library or a more robust regex to handle the malformed JSON-like string
+                    try {
+                        // This is a more aggressive regex that attempts to replace single quotes with double quotes
+                        // and wrap unquoted keys in double quotes.
+                        const fixedString = cleanedString
+                            .replace(/'/g, '"') // Replaces single quotes with double quotes
+                            .replace(/([\{\s,])(\w+)\s*:/g, '$1"$2":'); // Wraps unquoted keys in double quotes
+
+                        const parsed = JSON.parse(fixedString);
+                        
+                        if (Array.isArray(parsed)) {
+                            return parsed;
+                        }
+                        if (typeof parsed === 'object') {
+                            return [parsed];
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse and fix string:', e.message);
+                    }
+                }
+
+                return [];
+            };
+            aiGeneratedContent.recommendations.hotels = normalizeToArray(aiGeneratedContent.recommendations.hotels);
+            aiGeneratedContent.recommendations.restaurants = normalizeToArray(aiGeneratedContent.recommendations.restaurants);
+            aiGeneratedContent.recommendations.tips = normalizeToArray(aiGeneratedContent.recommendations.tips);
+
             // Create and save itinerary to database
             const itinerary = new Itinerary({
                 userId,
@@ -128,7 +149,7 @@ class ItineraryController {
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
-    }
+    };
 
     /**
      * Get all itineraries for the authenticated user
