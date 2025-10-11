@@ -7,7 +7,8 @@ import {
     deletePost,
     toggleLikePost,
     addComment,
-    getComments
+    getComments,
+    getPostsByUser
 } from '#controllers/posts.controller.js';
 import { authenticateToken } from '#middleware/auth.middleware.js';
 import { upload } from '#config/s3.js';
@@ -40,5 +41,8 @@ router.post('/:postId/comments', addComment);
 
 // GET /api/posts/:postId/comments - Get comments for a post
 router.get('/:postId/comments', getComments);
+
+// GET /api/posts/user/:userId - Get posts by user
+router.get('/user/:userId', getPostsByUser);
 
 export default router;

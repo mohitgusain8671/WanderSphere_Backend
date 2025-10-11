@@ -480,3 +480,57 @@ export const getComments = async (req, res) => {
         });
     }
 };
+
+// Get posts by user
+export const getPostsByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const posts = await Post.find({ author: userId, isActive: true })
+            .populate('author', 'firstName lastName profilePicture')
+            .populate('taggedFriends', 'firstName lastName profilePicture')
+            .populate('likes.user', 'firstName lastName profilePicture')
+            .populate('comments.user', 'firstName lastName profilePicture')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Add engagement counts and check if current user liked the post
+        const postsWithCounts = posts.map(post => {
+            const postObj = post.toObject();
+            postObj.likesCount = post.likes.length;
+            postObj.commentsCount = post.comments.length;
+            postObj.isLikedByCurrentUser = post.likes.some(
+                like => like.user._id.toString() === req.user.id
+            );
+            return postObj;
+        });
+
+        const totalPosts = await Post.countDocuments({ author: userId, isActive: true });
+        const hasMore = skip + limit < totalPosts;
+
+        res.status(200).json({
+            success: true,
+            data: {
+                posts: postsWithCounts,
+                pagination: {
+                    currentPage: page,
+                    totalPages: Math.ceil(totalPosts / limit),
+                    totalPosts,
+                    hasMore
+                }
+            },
+            message: 'User posts retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error getting user posts:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get user posts',
+            error: error.message
+        });
+    }
+};
