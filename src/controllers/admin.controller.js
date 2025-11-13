@@ -462,10 +462,10 @@ export const getAllPosts = async (req, res) => {
     const filter = {};
     
     if (search) {
-      filter.caption = { $regex: search, $options: 'i' };
+      filter.description = { $regex: search, $options: 'i' };
     }
     
-    if (userId) filter.userId = userId;
+    if (userId) filter.author = userId;
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -474,15 +474,23 @@ export const getAllPosts = async (req, res) => {
 
     const [posts, total] = await Promise.all([
       Post.find(filter)
-        .populate('userId', 'firstName lastName email profilePicture')
+        .populate('author', 'firstName lastName email profilePicture')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
       Post.countDocuments(filter),
     ]);
 
+    // Transform posts to match frontend expectations
+    const transformedPosts = posts.map(post => ({
+      ...post.toObject(),
+      userId: post.author, // Map author to userId for frontend compatibility
+      likesCount: post.likes?.length || 0,
+      commentsCount: post.comments?.length || 0,
+    }));
+
     res.status(200).json({
-      posts,
+      posts: transformedPosts,
       pagination: {
         total,
         page: parseInt(page),
@@ -501,7 +509,7 @@ export const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const post = await Post.findById(id).populate('userId', 'firstName email');
+    const post = await Post.findById(id).populate('author', 'firstName email');
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
@@ -509,11 +517,11 @@ export const deletePost = async (req, res) => {
     // Send deletion notification
     try {
       await sendEmail({
-        to: post.userId.email,
+        to: post.author.email,
         subject: 'Post Deleted',
         html: `
           <h2>Post Deletion Notification</h2>
-          <p>Hi ${post.userId.firstName},</p>
+          <p>Hi ${post.author.firstName},</p>
           <p>Your post has been deleted by an administrator.</p>
           <p>If you believe this was done in error, please contact support.</p>
         `,
@@ -545,7 +553,7 @@ export const getAllStories = async (req, res) => {
 
     const filter = {};
     
-    if (userId) filter.userId = userId;
+    if (userId) filter.author = userId;
 
     const sort = {};
     sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
@@ -554,15 +562,25 @@ export const getAllStories = async (req, res) => {
 
     const [stories, total] = await Promise.all([
       Story.find(filter)
-        .populate('userId', 'firstName lastName email profilePicture')
+        .populate('author', 'firstName lastName email profilePicture')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
       Story.countDocuments(filter),
     ]);
 
+    // Transform stories to match frontend expectations
+    const transformedStories = stories.map(story => ({
+      ...story.toObject(),
+      userId: story.author, // Map author to userId for frontend compatibility
+      mediaUrl: story.mediaFile?.url,
+      mediaType: story.mediaFile?.type,
+      viewsCount: story.viewers?.length || 0,
+      likesCount: story.likes?.length || 0,
+    }));
+
     res.status(200).json({
-      stories,
+      stories: transformedStories,
       pagination: {
         total,
         page: parseInt(page),
@@ -581,7 +599,7 @@ export const deleteStory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const story = await Story.findById(id).populate('userId', 'firstName email');
+    const story = await Story.findById(id).populate('author', 'firstName email');
     if (!story) {
       return res.status(404).json({ message: 'Story not found' });
     }
@@ -589,11 +607,11 @@ export const deleteStory = async (req, res) => {
     // Send deletion notification
     try {
       await sendEmail({
-        to: story.userId.email,
+        to: story.author.email,
         subject: 'Story Deleted',
         html: `
           <h2>Story Deletion Notification</h2>
-          <p>Hi ${story.userId.firstName},</p>
+          <p>Hi ${story.author.firstName},</p>
           <p>Your story has been deleted by an administrator.</p>
           <p>If you believe this was done in error, please contact support.</p>
         `,
