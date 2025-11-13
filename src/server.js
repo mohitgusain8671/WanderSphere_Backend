@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import app from './app.js';
 import connectToDB from '#config/database.js';
 import SocketManager from './socket.js';
+import { initializeSuperAdmin } from './utils/initSuperAdmin.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -11,6 +12,9 @@ const startServer = async () => {
         // Connect to database
         await connectToDB();
         console.log('✅ Database connected successfully');
+
+        // Initialize Super Admin
+        await initializeSuperAdmin();
 
         // Create HTTP server
         const server = createServer(app);

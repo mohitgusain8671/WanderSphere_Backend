@@ -129,6 +129,45 @@ class EmailService {
       throw error;
     }
   }
+
+  /**
+   * Generic send email function for admin operations
+   * @param {Object} options - Email options
+   * @param {string} options.to - Recipient email address
+   * @param {string} options.subject - Email subject
+   * @param {string} options.html - HTML content
+   * @param {string} options.text - Plain text content (optional)
+   */
+  async sendEmail({ to, subject, html, text }) {
+    const msg = {
+      to,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL,
+        name: 'WanderSphere'
+      },
+      subject,
+      html: html || text,
+    };
+
+    if (text && !html) {
+      msg.text = text;
+    }
+
+    try {
+      await sgMail.send(msg);
+      console.log('Email sent successfully to:', to);
+      return { success: true };
+    } catch (error) {
+      console.error('SendGrid email error:', error);
+      throw error;
+    }
+  }
 }
 
-export default new EmailService();
+// Export both the class instance and the sendEmail function
+const emailService = new EmailService();
+
+// Export the sendEmail function directly for easier imports
+export const sendEmail = emailService.sendEmail.bind(emailService);
+
+export default emailService;

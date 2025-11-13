@@ -27,8 +27,24 @@ const UserSchema = mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["admin", "user"],
+    enum: ["super_admin", "admin", "user"],
     default: "user",
+  },
+  permissions: {
+    type: [String],
+    default: [],
+    enum: [
+      "user_management",
+      "post_management",
+      "story_management",
+      "query_management",
+      "itinerary_management",
+      "wanderlust_management",
+      "email_management",
+      "admin_management",
+      "analytics_view",
+      "system_settings"
+    ],
   },
   profilePicture: {
     type: String,
