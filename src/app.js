@@ -12,6 +12,7 @@ import itineraryRoutes from '#routes/itinerary.routes.js';
 import chatRoutes from '#routes/chat.routes.js';
 import messageRoutes from '#routes/message.routes.js';
 import adminRoutes from '#routes/admin.routes.js';
+import queryRoutes from '#routes/query.routes.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/itinerary', itineraryRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/queries', queryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

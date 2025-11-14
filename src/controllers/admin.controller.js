@@ -2,6 +2,7 @@ import User from '#models/users.model.js';
 import Post from '#models/posts.model.js';
 import Story from '#models/story.model.js';
 import Itinerary from '#models/Itinerary.model.js';
+import Query from '../models/query.model.js';
 import bcrypt from 'bcrypt';
 import { sendEmail } from '#services/email.service.js';
 
@@ -13,6 +14,8 @@ export const getDashboardAnalytics = async (req, res) => {
       totalPosts,
       totalStories,
       totalItineraries,
+      totalQueries,
+      pendingQueries,
       activeUsers,
       recentUsers,
     ] = await Promise.all([
@@ -20,6 +23,8 @@ export const getDashboardAnalytics = async (req, res) => {
       Post.countDocuments(),
       Story.countDocuments(),
       Itinerary.countDocuments(),
+      Query.countDocuments(),
+      Query.countDocuments({ status: 'pending' }),
       User.countDocuments({ isOnline: true }),
       User.find().sort({ createdAt: -1 }).limit(10).select('-password'),
     ]);
@@ -57,8 +62,9 @@ export const getDashboardAnalytics = async (req, res) => {
         totalPosts,
         totalStories,
         totalItineraries,
+        totalQueries,
         activeUsers,
-        pendingQueries: 0, // Add query model if needed
+        pendingQueries,
       },
       userGrowth: formattedUserGrowth.length > 0 ? formattedUserGrowth : [120, 145, 180, 220, 280, 350],
       recentUsers,
