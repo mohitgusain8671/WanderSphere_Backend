@@ -43,7 +43,8 @@ const UserSchema = mongoose.Schema({
       "email_management",
       "admin_management",
       "analytics_view",
-      "system_settings"
+      "system_settings",
+      "quiz_contest_management"
     ],
   },
   profilePicture: {
