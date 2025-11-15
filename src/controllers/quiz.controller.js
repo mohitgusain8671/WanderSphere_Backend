@@ -447,6 +447,93 @@ export const checkTodayAttempt = async (req, res) => {
   }
 };
 
+// Get Quiz Attempts (Admin)
+export const getQuizAttempts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [attempts, total] = await Promise.all([
+      QuizAttempt.find({ quizId: id })
+        .populate('userId', 'firstName lastName email')
+        .sort({ completedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      QuizAttempt.countDocuments({ quizId: id }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        attempts,
+        pagination: {
+          total,
+          page: parseInt(page),
+          pages: Math.ceil(total / parseInt(limit)),
+          limit: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get quiz attempts error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching quiz attempts' 
+    });
+  }
+};
+
+// Get Quiz Statistics (Admin)
+export const getQuizStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quiz = await Quiz.findById(id);
+    if (!quiz) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Quiz not found' 
+      });
+    }
+
+    // Get all attempts for this quiz
+    const attempts = await QuizAttempt.find({ quizId: id });
+
+    // Calculate statistics for each question
+    const questionStats = quiz.questions.map((question, index) => {
+      const questionAttempts = attempts.filter(a => a.answers[index]);
+      const correctCount = questionAttempts.filter(a => a.answers[index]?.isCorrect).length;
+
+      return {
+        questionIndex: index,
+        attempts: questionAttempts.length,
+        correct: correctCount,
+        incorrect: questionAttempts.length - correctCount,
+        accuracy: questionAttempts.length > 0 ? (correctCount / questionAttempts.length) * 100 : 0,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        questionStats,
+        totalAttempts: attempts.length,
+        averageScore: attempts.length > 0 
+          ? attempts.reduce((sum, a) => sum + a.totalScore, 0) / attempts.length 
+          : 0,
+      },
+    });
+  } catch (error) {
+    console.error('Get quiz stats error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching quiz statistics' 
+    });
+  }
+};
+
 // Helper function to update user stats
 async function updateUserStatsAfterQuiz(userId, points, correct, total, timeTaken) {
   try {

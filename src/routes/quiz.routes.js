@@ -9,6 +9,8 @@ import {
   submitQuizAttempt,
   getMyQuizHistory,
   checkTodayAttempt,
+  getQuizAttempts,
+  getQuizStats,
 } from '../controllers/quiz.controller.js';
 import { authenticateToken } from '#middleware/auth.middleware.js';
 import { checkAdmin, checkPermission } from '#middleware/admin.middleware.js';
@@ -24,6 +26,8 @@ router.put('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'),
 router.delete('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), deleteQuiz);
 router.get('/admin/all', checkAdmin, checkPermission('quiz_contest_management'), getAllQuizzes);
 router.get('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), getQuizById);
+router.get('/admin/:id/attempts', checkAdmin, checkPermission('quiz_contest_management'), getQuizAttempts);
+router.get('/admin/:id/stats', checkAdmin, checkPermission('quiz_contest_management'), getQuizStats);
 
 // ==================== USER ROUTES ====================
 router.get('/today', getTodayQuiz);
