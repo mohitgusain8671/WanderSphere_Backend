@@ -1,4 +1,29 @@
 import mongoose from 'mongoose';
+const answerSchema = new mongoose.Schema({
+  questionIndex: { type: Number, required: true },
+
+  type: {
+    type: String,
+    required: true,
+    enum: ["mcq", "task"]
+  },
+
+  // MCQ
+  selectedAnswer: { type: Number },
+
+  // MCQ result (set during final submission)
+  isCorrect: { type: Boolean, default: null },
+
+  // Task submissions (text/trivia/photo url)
+  taskSubmission: { type: String },
+  taskSubmissionType: { type: String }, // 'text' | 'photo' | 'trivia'
+
+  // Scoring
+  pointsEarned: { type: Number, default: 0 },
+
+  // Admin review for tasks
+  adminComment: { type: String, default: "" }
+});
 
 // Quiz Attempt Schema
 const quizAttemptSchema = new mongoose.Schema({
@@ -50,21 +75,7 @@ const contestSubmissionSchema = new mongoose.Schema({
     ref: 'Contest',
     required: true,
   },
-  answers: [{
-    questionIndex: Number,
-    type: String, // 'mcq' or 'task'
-    // For MCQ
-    selectedAnswer: Number,
-    isCorrect: Boolean,
-    // For Task
-    taskSubmission: {
-      type: String, // URL for photo, text for text submissions
-    },
-    taskSubmissionType: String,
-    // Common
-    pointsEarned: Number,
-    adminComment: String, // Admin's review comment for tasks
-  }],
+  answers: [answerSchema],
   totalScore: {
     type: Number,
     default: 0,
