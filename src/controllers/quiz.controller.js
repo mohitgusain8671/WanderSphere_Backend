@@ -335,17 +335,41 @@ export const getMyQuizHistory = async (req, res) => {
 
     const [attempts, total] = await Promise.all([
       QuizAttempt.find({ userId })
-        .populate('quizId', 'title date totalPoints')
+        .populate('quizId') // Populate full quiz with questions
         .sort({ completedAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
       QuizAttempt.countDocuments({ userId }),
     ]);
 
+    // Process attempts to include full question details with user's answers
+    const processedAttempts = attempts.map(attempt => {
+      const attemptObj = attempt.toObject();
+      
+      if (attemptObj.quizId && attemptObj.quizId.questions) {
+        // Map answers to include full question details
+        attemptObj.answers = attemptObj.answers.map(answer => {
+          const question = attemptObj.quizId.questions[answer.questionIndex];
+          return {
+            ...answer,
+            selectedOption: question?.options?.[answer.selectedAnswer]?._id,
+            timeTaken: answer.timeTaken,
+            pointsAwarded: answer.pointsEarned + answer.bonusEarned,
+            isCorrect: answer.isCorrect,
+          };
+        });
+      }
+      
+      // Calculate bonus points
+      attemptObj.bonusPoints = attemptObj.answers.reduce((sum, ans) => sum + (ans.bonusEarned || 0), 0);
+      
+      return attemptObj;
+    });
+
     res.status(200).json({
       success: true,
       data: {
-        attempts,
+        attempts: processedAttempts,
         pagination: {
           total,
           page: parseInt(page),

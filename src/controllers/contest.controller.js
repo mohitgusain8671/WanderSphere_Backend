@@ -477,17 +477,52 @@ export const getMyContestHistory = async (req, res) => {
 
     const [submissions, total] = await Promise.all([
       ContestSubmission.find({ userId, status: 'submitted' })
-        .populate('contestId', 'title startTime endTime totalPoints prize')
+        .populate('contestId') // Populate full contest with questions
         .sort({ submittedAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
       ContestSubmission.countDocuments({ userId, status: 'submitted' }),
     ]);
 
+    // Process submissions to include full question details
+    const processedSubmissions = submissions.map(submission => {
+      const submissionObj = submission.toObject();
+      
+      if (submissionObj.contestId && submissionObj.contestId.questions) {
+        // Map answers to include question type and details
+        submissionObj.answers = submissionObj.answers.map(answer => {
+          const question = submissionObj.contestId.questions[answer.questionIndex];
+          
+          if (answer.type === 'mcq') {
+            return {
+              ...answer,
+              questionId: question?._id,
+              questionType: 'mcq',
+              selectedOption: question?.options?.[answer.selectedAnswer]?._id,
+              isCorrect: answer.isCorrect,
+              pointsAwarded: answer.pointsEarned || 0,
+            };
+          } else {
+            // Task type
+            return {
+              ...answer,
+              questionId: question?._id,
+              questionType: 'task',
+              textAnswer: answer.taskSubmission,
+              photoUrl: answer.taskSubmissionType === 'photo' ? answer.taskSubmission : null,
+              pointsAwarded: answer.pointsEarned || 0,
+            };
+          }
+        });
+      }
+      
+      return submissionObj;
+    });
+
     res.status(200).json({
       success: true,
       data: {
-        submissions,
+        submissions: processedSubmissions,
         pagination: {
           total,
           page: parseInt(page),
