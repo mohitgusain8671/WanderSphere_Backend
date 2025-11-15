@@ -347,12 +347,26 @@ export const getMyQuizHistory = async (req, res) => {
       const attemptObj = attempt.toObject();
       
       if (attemptObj.quizId && attemptObj.quizId.questions) {
+        // Transform questions to have proper option objects
+        attemptObj.quizId.questions = attemptObj.quizId.questions.map((question, qIndex) => {
+          return {
+            ...question,
+            options: question.options.map((optionText, optIndex) => ({
+              _id: `${qIndex}-${optIndex}`, // Generate a unique ID
+              text: optionText,
+              isCorrect: optIndex === question.correctAnswer,
+            })),
+          };
+        });
+        
         // Map answers to include full question details
         attemptObj.answers = attemptObj.answers.map(answer => {
           const question = attemptObj.quizId.questions[answer.questionIndex];
+          const selectedOptionId = `${answer.questionIndex}-${answer.selectedAnswer}`;
+          
           return {
             ...answer,
-            selectedOption: question?.options?.[answer.selectedAnswer]?._id,
+            selectedOption: selectedOptionId,
             timeTaken: answer.timeTaken,
             pointsAwarded: answer.pointsEarned + answer.bonusEarned,
             isCorrect: answer.isCorrect,
