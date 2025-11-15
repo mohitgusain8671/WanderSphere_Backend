@@ -341,16 +341,24 @@ export const saveContestProgress = async (req, res) => {
     const userId = req.user.id;
     const { answers } = req.body;
 
-    const submission = await ContestSubmission.findOne({
+    // First check if any submission exists
+    let submission = await ContestSubmission.findOne({
       userId,
       contestId: id,
-      status: 'in_progress',
     });
 
     if (!submission) {
       return res.status(404).json({ 
         success: false,
-        message: 'Contest submission not found' 
+        message: 'Contest not started. Please start the contest first.' 
+      });
+    }
+
+    // Check if already submitted
+    if (submission.status === 'submitted') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Contest already submitted. Cannot save progress.' 
       });
     }
 
@@ -367,7 +375,8 @@ export const saveContestProgress = async (req, res) => {
     console.error('Save contest progress error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Error saving progress' 
+      message: 'Error saving progress',
+      error: error.message 
     });
   }
 };
@@ -379,16 +388,24 @@ export const submitContest = async (req, res) => {
     const userId = req.user.id;
     const { answers } = req.body;
 
-    const submission = await ContestSubmission.findOne({
+    // First check if any submission exists
+    let submission = await ContestSubmission.findOne({
       userId,
       contestId: id,
-      status: 'in_progress',
     });
 
     if (!submission) {
       return res.status(404).json({ 
         success: false,
-        message: 'Contest submission not found' 
+        message: 'Contest not started. Please start the contest first.' 
+      });
+    }
+
+    // Check if already submitted
+    if (submission.status === 'submitted') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Contest already submitted.' 
       });
     }
 
@@ -462,7 +479,8 @@ export const submitContest = async (req, res) => {
     console.error('Submit contest error:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Error submitting contest' 
+      message: 'Error submitting contest',
+      error: error.message 
     });
   }
 };
