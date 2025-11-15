@@ -587,16 +587,35 @@ export const getMyContestHistory = async (req, res) => {
       const submissionObj = submission.toObject();
       
       if (submissionObj.contestId && submissionObj.contestId.questions) {
+        // Transform questions to have proper option objects (like quiz)
+        submissionObj.contestId.questions = submissionObj.contestId.questions.map((question, qIndex) => {
+          if (question.type === 'mcq' && Array.isArray(question.options)) {
+            console.log(`Transforming question ${qIndex}, options:`, question.options);
+            const transformedOptions = question.options.map((optionText, optIndex) => ({
+              _id: `${qIndex}-${optIndex}`,
+              text: optionText,
+              isCorrect: optIndex === question.correctAnswer,
+            }));
+            console.log(`Transformed options:`, transformedOptions);
+            return {
+              ...question,
+              options: transformedOptions,
+            };
+          }
+          return question;
+        });
+        
         // Map answers to include question type and details
         submissionObj.answers = submissionObj.answers.map(answer => {
           const question = submissionObj.contestId.questions[answer.questionIndex];
           
           if (answer.type === 'mcq') {
+            const selectedOptionId = `${answer.questionIndex}-${answer.selectedAnswer}`;
             return {
               ...answer,
               questionId: question?._id,
               questionType: 'mcq',
-              selectedOption: question?.options?.[answer.selectedAnswer]?._id,
+              selectedOption: selectedOptionId,
               isCorrect: answer.isCorrect,
               pointsAwarded: answer.pointsEarned || 0,
             };
