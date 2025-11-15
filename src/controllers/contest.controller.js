@@ -540,6 +540,133 @@ export const getMyContestHistory = async (req, res) => {
   }
 };
 
+// Get Contest Statistics (Admin)
+export const getContestStats = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Contest not found' 
+      });
+    }
+
+    // Get all submissions for this contest
+    const submissions = await ContestSubmission.find({ contestId: id, status: 'submitted' });
+
+    // Calculate statistics for each question
+    const questionStats = contest.questions.map((question, index) => {
+      const questionAnswers = submissions
+        .map(s => s.answers.find(a => a.questionIndex === index))
+        .filter(a => a);
+
+      const correctCount = questionAnswers.filter(a => a.isCorrect).length;
+
+      return {
+        questionIndex: index,
+        attempts: questionAnswers.length,
+        correct: correctCount,
+        incorrect: questionAnswers.length - correctCount,
+        accuracy: questionAnswers.length > 0 ? (correctCount / questionAnswers.length) * 100 : 0,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        questionStats,
+        totalSubmissions: submissions.length,
+        averageScore: submissions.length > 0 
+          ? submissions.reduce((sum, s) => sum + s.totalScore, 0) / submissions.length 
+          : 0,
+      },
+    });
+  } catch (error) {
+    console.error('Get contest stats error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching contest statistics' 
+    });
+  }
+};
+
+// Review Task Submission (Admin)
+export const reviewTaskSubmission = async (req, res) => {
+  try {
+    const { id, submissionId } = req.params;
+    const { questionIndex, points, comment } = req.body;
+
+    const submission = await ContestSubmission.findOne({
+      _id: submissionId,
+      contestId: id,
+    });
+
+    if (!submission) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Submission not found' 
+      });
+    }
+
+    const contest = await Contest.findById(id);
+    if (!contest) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Contest not found' 
+      });
+    }
+
+    // Find the answer for this question
+    const answerIndex = submission.answers.findIndex(a => a.questionIndex === questionIndex);
+    if (answerIndex === -1) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Answer not found' 
+      });
+    }
+
+    const question = contest.questions[questionIndex];
+    const maxPoints = question.points;
+
+    // Validate points
+    if (points < 0 || points > maxPoints) {
+      return res.status(400).json({ 
+        success: false,
+        message: `Points must be between 0 and ${maxPoints}` 
+      });
+    }
+
+    // Update the answer
+    const oldPoints = submission.answers[answerIndex].pointsEarned;
+    submission.answers[answerIndex].pointsEarned = points;
+    submission.answers[answerIndex].adminComment = comment;
+
+    // Recalculate total score
+    submission.totalScore = submission.totalScore - oldPoints + points;
+
+    await submission.save();
+
+    // Update user stats if points changed
+    if (oldPoints !== points) {
+      await updateUserStatsAfterContest(submission.userId, points - oldPoints);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Review submitted successfully',
+      data: { submission },
+    });
+  } catch (error) {
+    console.error('Review task submission error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error reviewing submission' 
+    });
+  }
+};
+
 // Helper function to update user stats
 async function updateUserStatsAfterContest(userId, points) {
   try {

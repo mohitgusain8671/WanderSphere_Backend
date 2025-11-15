@@ -11,6 +11,8 @@ import {
   saveContestProgress,
   submitContest,
   getMyContestHistory,
+  getContestStats,
+  reviewTaskSubmission,
 } from '../controllers/contest.controller.js';
 import { authenticateToken } from '#middleware/auth.middleware.js';
 import { checkAdmin, checkPermission } from '#middleware/admin.middleware.js';
@@ -26,6 +28,8 @@ router.put('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'),
 router.delete('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), deleteContest);
 router.get('/admin/all', checkAdmin, checkPermission('quiz_contest_management'), getAllContests);
 router.get('/admin/:id/submissions', checkAdmin, checkPermission('quiz_contest_management'), getContestSubmissions);
+router.get('/admin/:id/stats', checkAdmin, checkPermission('quiz_contest_management'), getContestStats);
+router.put('/admin/:id/submissions/:submissionId/review', checkAdmin, checkPermission('quiz_contest_management'), reviewTaskSubmission);
 
 // ==================== USER ROUTES ====================
 router.get('/active', getActiveContests);

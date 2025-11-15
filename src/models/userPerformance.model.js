@@ -63,6 +63,7 @@ const contestSubmissionSchema = new mongoose.Schema({
     taskSubmissionType: String,
     // Common
     pointsEarned: Number,
+    adminComment: String, // Admin's review comment for tasks
   }],
   totalScore: {
     type: Number,
