@@ -358,6 +358,16 @@ export const saveContestProgress = async (req, res) => {
     console.log('Save progress - Answers count:', answers?.length);
     console.log('Save progress - Answers type:', typeof answers);
 
+    // Filter out empty answers (unanswered questions)
+    const validAnswers = answers.filter(answer => 
+      answer && 
+      answer.questionIndex !== undefined && 
+      answer.type &&
+      (answer.selectedAnswer !== undefined || answer.taskSubmission)
+    );
+
+    console.log('Save progress - Valid answers count:', validAnswers.length);
+
     // First check if any submission exists
     let submission = await ContestSubmission.findOne({
       userId,
@@ -382,7 +392,7 @@ export const saveContestProgress = async (req, res) => {
       });
     }
 
-    submission.answers = answers;
+    submission.answers = validAnswers;
     submission.updatedAt = new Date();
     await submission.save();
 
@@ -426,6 +436,16 @@ export const submitContest = async (req, res) => {
     console.log('Submit contest - User ID:', userId);
     console.log('Submit contest - Answers count:', answers?.length);
     console.log('Submit contest - Answers type:', typeof answers);
+
+    // Filter out empty answers (unanswered questions)
+    const validAnswers = answers.filter(answer => 
+      answer && 
+      answer.questionIndex !== undefined && 
+      answer.type &&
+      (answer.selectedAnswer !== undefined || answer.taskSubmission)
+    );
+
+    console.log('Submit contest - Valid answers count:', validAnswers.length);
 
     // First check if any submission exists
     let submission = await ContestSubmission.findOne({
@@ -473,8 +493,15 @@ export const submitContest = async (req, res) => {
 
     // Calculate score
     let totalScore = 0;
-    const processedAnswers = answers.map((answer, index) => {
-      const question = contest.questions[index];
+    const processedAnswers = validAnswers.map((answer) => {
+      const questionIndex = answer.questionIndex;
+      const question = contest.questions[questionIndex];
+      
+      if (!question) {
+        console.error(`Question not found at index ${questionIndex}`);
+        return null;
+      }
+
       let pointsEarned = 0;
 
       if (question.type === 'mcq') {
@@ -483,7 +510,7 @@ export const submitContest = async (req, res) => {
           pointsEarned = question.points;
         }
         return {
-          questionIndex: index,
+          questionIndex,
           type: 'mcq',
           selectedAnswer: answer.selectedAnswer,
           isCorrect,
@@ -492,16 +519,16 @@ export const submitContest = async (req, res) => {
       } else {
         // Task type - admin will review later
         return {
-          questionIndex: index,
+          questionIndex,
           type: 'task',
           taskSubmission: answer.taskSubmission,
           taskSubmissionType: answer.taskSubmissionType,
           pointsEarned: 0, // Will be updated by admin
         };
       }
-    });
+    }).filter(answer => answer !== null); // Remove any null entries
 
-    totalScore = processedAnswers.reduce((sum, a) => sum + a.pointsEarned, 0);
+    totalScore = processedAnswers.reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
 
     console.log('Submit contest - Processed answers:', processedAnswers.length);
     console.log('Submit contest - Total score:', totalScore);
