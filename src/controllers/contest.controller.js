@@ -142,6 +142,34 @@ export const getAllContests = async (req, res) => {
   }
 };
 
+// Get Contest by ID (Admin) - includes correct answers
+export const getContestByIdAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contest = await Contest.findById(id)
+      .populate('createdBy', 'firstName lastName email');
+      
+    if (!contest) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Contest not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { contest },
+    });
+  } catch (error) {
+    console.error('Get contest by ID (admin) error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching contest' 
+    });
+  }
+};
+
 // Get Contest Submissions (Admin)
 export const getContestSubmissions = async (req, res) => {
   try {

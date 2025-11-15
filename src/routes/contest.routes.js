@@ -4,6 +4,7 @@ import {
   updateContest,
   deleteContest,
   getAllContests,
+  getContestByIdAdmin,
   getContestSubmissions,
   getActiveContests,
   getContestById,
@@ -27,6 +28,7 @@ router.post('/admin/create', checkAdmin, checkPermission('quiz_contest_managemen
 router.put('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), updateContest);
 router.delete('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), deleteContest);
 router.get('/admin/all', checkAdmin, checkPermission('quiz_contest_management'), getAllContests);
+router.get('/admin/:id', checkAdmin, checkPermission('quiz_contest_management'), getContestByIdAdmin);
 router.get('/admin/:id/submissions', checkAdmin, checkPermission('quiz_contest_management'), getContestSubmissions);
 router.get('/admin/:id/stats', checkAdmin, checkPermission('quiz_contest_management'), getContestStats);
 router.put('/admin/:id/submissions/:submissionId/review', checkAdmin, checkPermission('quiz_contest_management'), reviewTaskSubmission);
