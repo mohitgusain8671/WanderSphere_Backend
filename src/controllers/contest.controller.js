@@ -339,11 +339,24 @@ export const saveContestProgress = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { answers } = req.body;
+    let { answers } = req.body;
+
+    // Handle case where answers might be sent as a string
+    if (typeof answers === 'string') {
+      try {
+        answers = JSON.parse(answers);
+      } catch (e) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Invalid answers format' 
+        });
+      }
+    }
 
     console.log('Save progress - Contest ID:', id);
     console.log('Save progress - User ID:', userId);
     console.log('Save progress - Answers count:', answers?.length);
+    console.log('Save progress - Answers type:', typeof answers);
 
     // First check if any submission exists
     let submission = await ContestSubmission.findOne({
@@ -395,11 +408,24 @@ export const submitContest = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { answers } = req.body;
+    let { answers } = req.body;
+
+    // Handle case where answers might be sent as a string
+    if (typeof answers === 'string') {
+      try {
+        answers = JSON.parse(answers);
+      } catch (e) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Invalid answers format' 
+        });
+      }
+    }
 
     console.log('Submit contest - Contest ID:', id);
     console.log('Submit contest - User ID:', userId);
-    console.log('Submit contest - Answers:', JSON.stringify(answers, null, 2));
+    console.log('Submit contest - Answers count:', answers?.length);
+    console.log('Submit contest - Answers type:', typeof answers);
 
     // First check if any submission exists
     let submission = await ContestSubmission.findOne({
