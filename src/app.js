@@ -16,6 +16,7 @@ import queryRoutes from '#routes/query.routes.js';
 import quizRoutes from '#routes/quiz.routes.js';
 import contestRoutes from '#routes/contest.routes.js';
 import leaderboardRoutes from '#routes/leaderboard.routes.js';
+import localBuddyRoutes from '#routes/localBuddy.routes.js';
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/contest', contestRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/queries', queryRoutes);
+app.use('/api/buddy', localBuddyRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

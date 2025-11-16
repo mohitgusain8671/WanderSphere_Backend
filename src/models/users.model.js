@@ -44,7 +44,8 @@ const UserSchema = mongoose.Schema({
       "admin_management",
       "analytics_view",
       "system_settings",
-      "quiz_contest_management"
+      "quiz_contest_management",
+      "buddy_management"
     ],
   },
   profilePicture: {

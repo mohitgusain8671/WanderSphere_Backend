@@ -27,15 +27,16 @@ const upload = multer({
       let folder = "others";
       if (file.mimetype.startsWith("image/")) folder = "images";
       else if (file.mimetype.startsWith("video/")) folder = "videos";
+      else if (file.mimetype === "application/pdf") folder = "documents";
 
       cb(null, `${folder}/${fileName}`);
     },
   }),
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/") || file.mimetype === "application/pdf") {
       cb(null, true);
     } else {
-      cb(new Error("Only images and videos are allowed!"), false);
+      cb(new Error("Only images, videos, and PDF files are allowed!"), false);
     }
   },
   limits: {
@@ -62,4 +63,31 @@ const deleteFromS3 = async (fileUrl) => {
   }
 };
 
-export { upload, deleteFromS3, s3 };
+// ✅ Configure multer for buddy document uploads (images and PDFs)
+const uploadBuddyDocuments = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.AWS_S3_BUCKET_NAME,
+    metadata: (req, file, cb) => {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: (req, file, cb) => {
+      const fileExtension = file.originalname.split(".").pop();
+      const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}.${fileExtension}`;
+      cb(null, `buddy-documents/${fileName}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    // Allow images, videos, and PDFs for buddy documents
+    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/") || file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images, videos, and PDF files are allowed for buddy documents!"), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for documents
+  },
+});
+
+export { upload, uploadBuddyDocuments, deleteFromS3, s3 };
