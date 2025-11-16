@@ -208,10 +208,10 @@ export const searchBuddies = async (req, res) => {
       filter.buddyName = { $regex: buddyName, $options: 'i' };
     }
 
-    // Filter by services
+    // Filter by services - match if at least one service matches
     if (services) {
       const serviceArray = Array.isArray(services) ? services : [services];
-      filter.services = { $in: serviceArray };
+      filter.services = { $in: serviceArray }; // $in already matches if ANY service matches
     }
 
     // Filter by rating
@@ -227,10 +227,11 @@ export const searchBuddies = async (req, res) => {
       ];
     }
 
-    // Filter by location (city/country)
+    // Filter by location (city/state/country)
     if (location) {
       filter.$or = [
         { 'locations.city': { $regex: location, $options: 'i' } },
+        { 'locations.state': { $regex: location, $options: 'i' } },
         { 'locations.country': { $regex: location, $options: 'i' } },
       ];
     }
