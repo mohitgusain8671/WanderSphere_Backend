@@ -17,6 +17,7 @@ import {
 } from '../controllers/contest.controller.js';
 import { authenticateToken } from '#middleware/auth.middleware.js';
 import { checkAdmin, checkPermission } from '#middleware/admin.middleware.js';
+import { upload } from '#config/s3.js';
 
 const router = express.Router();
 
@@ -34,6 +35,36 @@ router.get('/admin/:id/stats', checkAdmin, checkPermission('quiz_contest_managem
 router.put('/admin/:id/submissions/:submissionId/review', checkAdmin, checkPermission('quiz_contest_management'), reviewTaskSubmission);
 
 // ==================== USER ROUTES ====================
+// File Upload for Contest Task Submissions
+router.post('/upload/task-photo', upload.single('photo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Photo uploaded successfully',
+      data: {
+        url: req.file.location,
+        key: req.file.key,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      },
+    });
+  } catch (error) {
+    console.error('Contest photo upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading photo',
+    });
+  }
+});
+
 router.get('/active', getActiveContests);
 router.get('/:id', getContestById);
 router.post('/:id/start', startContest);
