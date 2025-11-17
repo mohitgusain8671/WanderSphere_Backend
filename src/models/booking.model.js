@@ -39,8 +39,8 @@ const ratingSchema = new mongoose.Schema({
 const bookingSchema = new mongoose.Schema({
   bookingId: {
     type: String,
-    required: true,
     unique: true,
+    // Not required here since it's auto-generated in pre-save hook
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
