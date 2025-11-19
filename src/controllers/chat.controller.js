@@ -172,10 +172,10 @@ export const createGroupChat = async (req, res) => {
         });
 
         const friendIds = friendships.map(f => 
-            f.requester.equals(userId) ? f.recipient : f.requester
+            (f.requester.equals(userId) ? f.recipient : f.requester).toString()
         );
 
-        const invalidParticipants = participantIds.filter(id => !friendIds.includes(id));
+        const invalidParticipants = participantIds.filter(id => !friendIds.includes(id.toString()));
         if (invalidParticipants.length > 0) {
             return res.status(400).json({
                 success: false,
